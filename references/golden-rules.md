@@ -6,19 +6,30 @@ For complete `$vs.*` service-script method signatures and return types, read [vs
 
 For SQL text helper functions such as `SQLTools.toChar(...)`, `SQLTools.isNull(...)`, and `SQLTools.top(...)`, read [sqltools-reference.md](sqltools-reference.md).
 
-## Superpowers workflow routing
+## Clarify before coding
 
-- Golden code-like requests first follow the Superpowers workflow gate; do not start by writing final code.
-- Use or follow `superpowers:brainstorming` when the requirement is unclear, business-heavy, or missing inputs, outputs, boundaries, interface docs, or success criteria.
-- Use or follow `superpowers:writing-plans` when the request is clear but needs multiple steps, tradeoffs, or implementation sequencing.
-- The only execution phrase is `开始写代码`.
-- Before `开始写代码`, output a concise `<proposed_plan>...</proposed_plan>` rather than final Velocity, SQL, or file edits.
-- After `开始写代码`, simple snippets may be output directly from the latest plan; medium business code should be generated from the plan; file edits, skill updates, or multi-step implementations should use or follow `superpowers:executing-plans`.
-- When subagents are available and the implementation is large enough to split cleanly, prefer `superpowers:subagent-driven-development`.
-- For file edits or multi-step work, use or follow `superpowers:verification-before-completion` before claiming completion.
-- Superpowers controls when and how the work proceeds. Golden controls the generated code style and platform rules.
-- If workflow and code-style rules seem to conflict, the workflow gate decides whether code may be written yet, and Golden rules decide what the code looks like once writing is allowed.
-- Explanatory requests such as introducing, migrating, installing, or sharing the skill do not need the planning gate.
+When generating Golden code, do not guess missing business-critical details. Ask the user first when unclear details could change the business result.
+
+Ask before coding when any of these are unclear:
+
+- Table names, field names, or source/target table relationships.
+- Service component vs process function type.
+- External interface URL, HTTP method, authentication, headers, request format, or response structure.
+- Bill type code, bill-code field, or numbering rule.
+- Amount, tax rate, exchange rate, weight, quantity, price, or precision-related input fields.
+- SQL query filters, join keys, data-permission main table, or grouping keys.
+- Insert, update, delete, sync, or de-duplication matching keys.
+- Return shape for frontend `$result` or process function output.
+
+Safe defaults may be used without asking only when they do not affect the business result, such as:
+
+- Velocity formatting, indentation, and `#if/#end` alignment.
+- Semicolon placement.
+- Standard null-check, comparison, and `SQLTools.isNull(...)` rules.
+- `$vs.util.precise(...)` for arithmetic.
+- Not setting primary key IDs during normal inserts.
+
+When a safe default is used, state the assumption briefly in the response.
 
 ## Common directives
 
@@ -391,7 +402,9 @@ HTTP method selection:
 ## Code conventions
 
 - Object or string null check: `$vs.util.isNull($obj)`
-- List or map empty check: `$vs.util.isNull($list) || $list.isEmpty()`
+- List has-data check: `$list.size() > 0`
+- If the list may be null, guard it before calling `size()`: `!$vs.util.isNull($list) && $list.size() > 0`
+- Map empty check: `$vs.util.isNull($map) || $map.isEmpty()`
 - Object comparison: use `$vs.util.equals(...)`, not `==`
 - Numeric comparison: may use `==`
 - String comparison: use `equals`
@@ -597,7 +610,6 @@ This skill should trigger when the user says or strongly implies any of the foll
 - `按 golden语法 输出`
 - `按 golden 输出`
 - `把这段改成 golden语法`
-- `开始写代码`
 - `用 Velocity + $vs 风格写`
 - `按团队 Velocity 规范写`
 - `写服务组件`

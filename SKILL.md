@@ -7,22 +7,6 @@ description: Use when the user explicitly asks for golden语法, golden syntax, 
 
 Use this skill only when the user explicitly asks for `golden语法` or clearly wants code in this exact Velocity + `$vs` style.
 
-## Superpowers workflow gate
-
-- Golden code-like requests must not start by writing final code. First use or follow the appropriate Superpowers workflow skill.
-- If the requirement is unclear or involves business design, use or follow `superpowers:brainstorming` to clarify goal, inputs, outputs, boundaries, and success criteria.
-- If the requirement is clear but has multiple implementation steps, use or follow `superpowers:writing-plans` and output a concise `<proposed_plan>...</proposed_plan>`.
-- The execution phrase is exactly `开始写代码`. Do not treat `可以`, `开始`, or other casual approval as permission to write final code.
-- Before the execution phrase appears, a Golden code-like response should be a plan, not final Velocity, SQL, or file edits.
-- Explanatory requests such as introducing the skill, migration, installation, or sharing can be answered directly without the planning gate.
-
-After the user says `开始写代码`, route by complexity:
-
-- Simple snippets: directly output the Golden code from the latest plan without a heavy execution workflow.
-- Medium business code: output the complete planned Golden code, such as a service component body, process function, SQL, temporary-table template, or external-interface call.
-- File edits, skill updates, or multi-step implementation: use or follow `superpowers:executing-plans`; when subagents are available and the task is large enough, prefer `superpowers:subagent-driven-development`.
-- Before claiming a file-edit or multi-step task is complete, use or follow `superpowers:verification-before-completion`.
-
 ## Core output style
 
 - Output Velocity template code, not plain Java or JS pseudocode.
@@ -56,8 +40,11 @@ Do not mix in unrelated frameworks or another template language.
 
 ## Required conventions
 
+- Do not guess missing business-critical details when generating Golden code. Ask the user first when table names, field names, service type, interface contract, bill type, matching keys, calculation inputs, or other business-impacting details are unclear.
+- Only make minimal reasonable assumptions for safe formatting or style defaults that do not change the business result, and state those assumptions in the response.
 - Object or string null checks: `$vs.util.isNull($obj)`
-- List or map emptiness checks: `$vs.util.isNull($list) || $list.isEmpty()`
+- List has-data checks: `$list.size() > 0`
+- If the list may be null, guard it before calling `size()`: `!$vs.util.isNull($list) && $list.size() > 0`
 - Object comparison: `$vs.util.equals(...)`
 - Numeric comparison may use `==`
 - String comparison should use `equals`
