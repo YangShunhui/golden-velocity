@@ -1,4 +1,4 @@
 interface:
   display_name: "golden语法"
-  short_description: "Velocity + $vs team coding style with ShowDoc development rules"
-  default_prompt: "When the user explicitly asks for golden语法, output Velocity template code in the team's $vs style and follow the ShowDoc performance, SQL, formatting, null-check, and process-call conventions."
+  short_description: "Golden Velocity、SQL 与平台前端 JS 规范"
+  default_prompt: "Use $golden-velocity to write code in the team Golden style, choosing backend Velocity or platform frontend JavaScript from the execution context."

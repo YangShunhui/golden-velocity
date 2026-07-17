@@ -6,7 +6,9 @@ For complete `$vs.*` service-script method signatures and return types, read [vs
 
 For SQL text helper functions such as `SQLTools.toChar(...)`, `SQLTools.isNull(...)`, and `SQLTools.top(...)`, read [sqltools-reference.md](sqltools-reference.md).
 
-For frontend page-control JavaScript methods such as dialogs, loading, page/window operations, frontend service-component calls, permissions, system variables, and frontend utilities, read [frontend-page-api.md](frontend-page-api.md).
+For frontend `gUtil` methods such as dialogs, loading, service-component calls, permissions, system variables, and common utilities, read [frontend-page-api.md](frontend-page-api.md).
+
+For frontend window scripts using `$vm`, `self`, `selfPage`, forms, tables, buttons, lifecycle events, save flows, or selection dialogs, read [frontend-window-controls.md](frontend-window-controls.md).
 
 ## Clarify before coding
 
@@ -38,16 +40,79 @@ When a safe default is used, state the assumption briefly in the response.
 
 Use frontend page-control APIs when the user asks for `golden` frontend JS, 页面控件, form/table/page operations, dialogs, loading, opening pages/windows, frontend service-component calls, permissions, system variables, or frontend utilities.
 
-Frontend rules:
+### Execution-context routing
 
-- Prefer platform page-control APIs from [frontend-page-api.md](frontend-page-api.md) instead of raw browser APIs or hand-written DOM/window utilities.
-- Prefer `getServerData(...)` for synchronous frontend service-component calls when an immediate return value is required.
-- Prefer `request(...)` for asynchronous frontend service-component calls with success and error callbacks.
-- Prefer page-control dialog, message, loading, and window APIs over raw `alert(...)`, manual loading masks, or hand-built navigation logic.
-- For frontend numeric calculations, use page-control `precise(...)`; backend Velocity calculations still use `$vs.util.precise(...)`.
-- For frontend date and number formatting, prefer page-control `formatDate(...)`, `formatNumber(...)`, and related helpers when signatures are available.
-- Keep frontend JS APIs separate from backend Velocity `$vs.*` APIs.
-- Do not invent table, form, or grid APIs. If [frontend-page-api.md](frontend-page-api.md) does not contain the needed method signature, ask the user or extract more from API Center first.
+- Route by event and code markers rather than `.js` alone.
+- Generate platform frontend JavaScript for `onCreate`, `onOpen`, `onClick`, `onChange`, `onCheck`, `onUnCheck`, `onAfterLoad`, `onTableReady`, `onDblClickCell`, and `onBeforeWinClose` handlers.
+- Generate Velocity for `beforeSqlSelect` handlers that use `$form`, `$sqlBean`, `$vs.*`, Velocity directives, or `SQLTools.*` fragments, even when the stored filename ends in `.js`.
+- Do not use `$vs.*`, `$form`, `$result`, or `$sqlBean` in browser code. Do not use `gUtil`, `$vm`, `self`, or page controls in backend Velocity.
+
+### Runtime and event context
+
+- Reuse platform-provided globals; do not redeclare or synthesize them.
+- Common window globals are `self`, `selfPage`, `args`, and `openType`.
+- Common event parameters are `newData` and `rowIndex` for table `onChange`, `rowData` for `onCheck/onUnCheck`, `field` and `rowData` for `onDblClickCell`, and `closeCallback` for `onBeforeWinClose`.
+- Treat control IDs such as `inputForm`, `searchForm`, `mainTable`, `detailTable`, and `tabPage` as page-configured objects. Do not invent a control ID that is not provided by the request or surrounding page.
+
+### API and code conventions
+
+- Prefer platform APIs from [frontend-page-api.md](frontend-page-api.md) and [frontend-window-controls.md](frontend-window-controls.md) instead of raw browser APIs or hand-written DOM/window utilities.
+- Use `gUtil.isNull(...)` and `gUtil.isNotNull(...)` for frontend null checks and `gUtil.equals(...)` for business value or string comparison.
+- Clone dialog-returned or source rows with `gUtil.clone(...)` before changing fields; do not mutate the returned row unless the page contract explicitly requires it.
+- Format `$vm.openDialog(pageAlias, params, openType, isNew, function (rows) {` as one line by default. Put the callback statements on following indented lines. Break the invocation only when an argument is itself complex or the user explicitly requests multiline arguments.
+- Remove `console`, `debugger`, direct DOM manipulation, and unexplained timer polling. Use `gUtil.listen(...)` for lazily mounted controls when that API is available; use `setTimeout(...)` only for a documented render-timing requirement.
+- End statements with semicolons and use early returns for failed validation.
+- Do not promote bill-type codes, field names, or project utilities found in one business page into universal Golden APIs.
+
+### Form, table, and button state
+
+- When a controlling field changes, handle dependent values, editable state, required state, and select rebinding together.
+- If disabling a dependent field makes its old value invalid, clear the code and display fields before disabling it.
+- Keep code/display field pairs synchronized when the page schema uses both.
+- Use `disabledEdit(true)` for a read-only page or control, then explicitly unlock only the fields allowed by the current `openType`.
+- For a single-row action, reject multiple selection first, then reject the empty current row, then perform the action.
+- Use `getData()` for all table data, `getSelectRows()` for checked rows, and `getRow()` for the current row; do not treat these result shapes as interchangeable.
+- Use `self.button(id).enabled()/disabled()/show()/hide()` for button state instead of manipulating button DOM.
+
+### Service calls and lazy controls
+
+- Use `gUtil.getServerData(...)` only when the next statement requires an immediate result. Wrap critical synchronous calls in `try/catch` and report failures with `gUtil.error(...)`.
+- Prefer `gUtil.request(...)` for asynchronous calls. Supply an error callback for save, delete, audit, or other critical mutations and restore disabled buttons or loading state there.
+- Keep shared success behavior in one named function when multiple request or confirmation branches converge. Do not copy the mutation or save body into every branch.
+- Prefer platform dialog, message, loading, and window APIs over raw `alert(...)`, manual loading masks, or hand-built navigation.
+
+### Frontend precision and row linkage
+
+- Use `gUtil.precise(...)` for frontend business arithmetic; backend Velocity calculations still use `$vs.util.precise(...)`.
+- Pass the page's established quantity, weight, price, amount, tax-rate, or exchange-rate precision variable when it is available. Do not invent a precision object or field.
+- Perform multi-step calculations as a sequence of `gUtil.precise(...)` calls, then write results with the configured table's `setDataValue(...)` or `update(...)` method.
+- Prefer an existing page calculation helper such as `$pageUtil.calculate(...)` when the surrounding project defines it and its contract is known.
+- For frontend date and number formatting, prefer `gUtil.formatDate(...)`, `gUtil.formatNumber(...)`, and related helpers when their signatures are available.
+
+### Save orchestration
+
+- Keep exactly one `$vm.save(...)` call for one save action. Put the success callback and before-save callback in named functions when the logic is non-trivial.
+- In the before-save callback, return `true` only when synchronous validation passes and saving may continue immediately.
+- When confirmation is required, open `gUtil.confirm(...)`, call the platform-provided continuation such as `save()` only in the confirm callback, and return `false` from the before-save callback to pause the original path.
+- Do not duplicate the complete `$vm.save(...)` block across multi-party, quota, overdue, or similar confirmation branches. Resolve those branches first and converge on one save entry point.
+- Keep saved-result field write-back, dirty-state reset, button state, and post-save table reload in the single success callback.
+
+### Selection-dialog flow
+
+- On dialog `onOpen`, clear stale selected data and store incoming `args` on the source table only when later events need them.
+- On source-table `onAfterLoad`, restore checks from the selected table without adding duplicate selected rows.
+- On `onCheck`, add a cloned or mapped row to the selected table, using `$vm.selPageAddRow(...)` when its observed contract fits.
+- On `onUnCheck`, delete the corresponding row from the selected table.
+- When deleting from the selected table, uncheck the matching source row in the deletion callback.
+- On confirmation, read selected rows, clear temporary selected data when the page is reused, and return through `$vm.dialogCallback(rows)`.
+
+### Dirty-window close
+
+- In `onBeforeWinClose`, allow read-only `openType` values to close directly when the page contract says they cannot be dirty.
+- Use `self.getIsChange()` to detect edits. If unchanged, return without blocking.
+- If changed, ask for confirmation, call `closeCallback()` only after confirmation, and return the platform's blocking value from the event.
+
+Do not invent `$vm`, form, table, grid, or event signatures. Use only signatures documented in [frontend-window-controls.md](frontend-window-controls.md), present in the surrounding project, or confirmed by API Center; otherwise ask the user.
 
 ## Common directives
 
@@ -643,3 +708,11 @@ This skill should trigger when the user says or strongly implies any of the foll
 - `HTTP接口`
 - `请求日志`
 - `响应日志`
+
+It should also trigger automatically when inspected or scanned file content clearly matches Golden code, even if the user does not name the skill:
+
+- Backend signals: Velocity directives together with `$vs.*`, `$form`, `$result`, `$sqlBean`, or `SQLTools.*` usage.
+- Frontend signals: `gUtil`, `$vm`, `selfPage`, platform form/table controls, or recognized page-event scripts such as `onOpen`, `onChange`, `onCheck`, and `onBeforeWinClose`.
+- Mixed page exports: route each script by its own execution context; do not assume every `.js` artifact is browser JavaScript.
+
+Do not trigger from generic JavaScript syntax, a lone `SQLTools` string in prose, or an isolated method name without a coherent platform context.

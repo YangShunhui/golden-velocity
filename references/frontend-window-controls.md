@@ -58,6 +58,16 @@ Observed call shape:
 $vm.openDialog(pageAlias, params, openType, isNew, callback);
 ```
 
+Formatting convention:
+
+```javascript
+$vm.openDialog(pageAlias, params, openType, isNew, function (rows) {
+    // Callback body starts on the next line.
+});
+```
+
+Keep the invocation head and callback declaration on one line by default. Split the invocation only when an argument is itself complex or the user explicitly asks for multiline arguments.
+
 - `pageAlias`, `params`, and `openType` have the same page-defined role as `$vm.open(...)`.
 - `isNew`: optional boolean observed in edit/select dialogs.
 - `callback`: optional result callback; the result may be one row or an array depending on the dialog contract.

@@ -1,12 +1,27 @@
-# Frontend Page API Reference
+# Frontend gUtil API Reference
 
 Source: API Center > 页面控件 > gUtil 公共工具类对象.
 
-This reference is used by `golden语法` when generating frontend JavaScript for page controls, service-component calls, dialogs, loading, window/page operations, and frontend utilities.
+This reference is used by `golden语法` when generating frontend JavaScript that calls the API Center `gUtil` public utility object. It covers service-component calls, dialogs, loading, generic window/page operations, permissions, formatting, and common utilities.
 
-Do not mix these browser-side page-control methods with backend Velocity `$vs.*` APIs. Backend service-script methods remain documented in `vs-service-api.md`.
+Scope boundary:
+
+- This file documents `gUtil` only. For project-snippet-backed `$vm`, `self`, `selfPage`, form, table, button, lifecycle, save, and selection-dialog patterns, read [frontend-window-controls.md](frontend-window-controls.md).
+- Do not mix these browser-side methods with backend Velocity `$vs.*` APIs. Backend service-script methods remain documented in [vs-service-api.md](vs-service-api.md).
+- API Center examples below are preserved as source documentation. When generating Golden code, still apply [golden-rules.md](golden-rules.md), including removal of temporary `console` and `debugger` output.
 
 Total methods: 106.
+
+## Contents
+
+- [消息与加载](#消息与加载)
+- [服务组件调用](#服务组件调用)
+- [页面与窗口操作](#页面与窗口操作)
+- [权限、用户和系统变量](#权限用户和系统变量)
+- [日期、数字和精度](#日期数字和精度)
+- [字符串、对象和通用工具](#字符串对象和通用工具)
+- [文件、图片、音频和剪贴板](#文件图片音频和剪贴板)
+- [其它页面控件方法](#其它页面控件方法)
 
 ## 消息与加载
 

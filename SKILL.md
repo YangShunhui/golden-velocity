@@ -1,11 +1,13 @@
 ---
-name: golden语法
-description: Use when the user explicitly asks for golden语法, golden syntax, Velocity + $vs style, or the team's ShowDoc Velocity rules for frontend JavaScript, page controls, SQL, backend code, service components, process functions, temporary tables, external interfaces, or code rewrites.
+name: golden-velocity
+description: Use when the user asks for golden语法, golden syntax, Velocity + $vs style, or the team's ShowDoc rules for frontend JavaScript, page controls, SQL, backend code, service components, process functions, temporary tables, external interfaces, or code rewrites. Also use automatically when inspecting, reviewing, learning from, or rewriting scanned files whose content clearly contains Golden backend markers such as Velocity directives, $vs.*, $form, $result, $sqlBean, or SQLTools.*, or Golden frontend markers such as gUtil, $vm, selfPage, platform form/table controls, and page event scripts.
 ---
 
 # Golden Syntax
 
-Use this skill only when the user explicitly asks for `golden语法` or clearly wants code in this exact Velocity + `$vs` style.
+Use this skill when the user explicitly asks for `golden语法`, clearly wants this platform style, or supplies/scans files whose content is recognizably Golden frontend JavaScript or backend Velocity.
+
+Do not trigger from ordinary JavaScript alone. Require a coherent platform signal such as multiple related Golden markers, a recognized page event context, or established `$vs`/Velocity usage.
 
 ## Core output style
 
@@ -26,6 +28,23 @@ Use this skill only when the user explicitly asks for `golden语法` or clearly 
   - `#end`
 - Every line should end with `;` when the statement form expects one.
 - Keep formatting tidy. Matching `#if` and `#end` must align.
+
+## Execution-context routing
+
+- Route by execution context and code markers, not by file extension alone.
+- Treat `onCreate`, `onOpen`, `onClick`, `onChange`, `onCheck`, `onUnCheck`, `onAfterLoad`, `onTableReady`, `onDblClickCell`, and `onBeforeWinClose` handlers as platform frontend JavaScript unless the artifact proves otherwise.
+- Treat `beforeSqlSelect` handlers containing `$form`, `$sqlBean`, `$vs.*`, Velocity directives, or `SQLTools.*` query fragments as backend Velocity even when the filename ends in `.js`.
+- Use browser-side `gUtil`, `$vm`, form/table controls, `self`, and `selfPage` only in frontend JavaScript. Use `$vs.*`, `$form`, `$result`, and `$sqlBean` only in backend Velocity.
+- If the execution context is still ambiguous after inspecting the surrounding page and script, ask the user before generating code.
+
+## Frontend JavaScript essentials
+
+- Use `gUtil.isNull(...)`, `gUtil.isNotNull(...)`, and `gUtil.equals(...)` for frontend null and value checks.
+- Use `gUtil.precise(...)` with the page's established precision variables for frontend business arithmetic; never use `$vs.util.precise(...)` in browser code.
+- Prefer platform `$vm`, form, table, button, dialog, loading, and service-component APIs over raw DOM, `window`, or hand-built utilities.
+- Keep the `$vm.openDialog(...)` invocation head on one line by default, including the callback declaration; start new lines inside the callback body. Split the invocation only when an argument is itself complex or the user requests another format.
+- Keep one `$vm.save(...)` entry point. Separate validation and confirmation branches from the save-success body; never copy the complete save block into each branch.
+- Remove `console`, `debugger`, unexplained timer polling, and direct DOM manipulation unless the user explicitly requires them or the platform has no equivalent.
 
 ## Priority rules
 
@@ -145,6 +164,7 @@ $proc.method();
 - Precision variables should use the standard decimal fields from the reference file.
 - For detailed API families, custom helper methods, and rules, read [references/golden-rules.md](references/golden-rules.md).
 - For frontend JavaScript page-control methods such as dialogs, loading, page/window operations, frontend service-component calls, permissions, system variables, and frontend utilities, read [references/frontend-page-api.md](references/frontend-page-api.md).
+- For frontend window scripts using `$vm`, `self`, `selfPage`, forms, tables, buttons, lifecycle events, save flows, or selection dialogs, read [references/frontend-window-controls.md](references/frontend-window-controls.md).
 - For exact `$vs.*` method signatures, parameters, return types, or method selection, read [references/vs-service-api.md](references/vs-service-api.md).
 - For SQL text helper signatures and examples such as `SQLTools.toChar(...)`, `SQLTools.isNull(...)`, or `SQLTools.top(...)`, read [references/sqltools-reference.md](references/sqltools-reference.md).
 - Do not mix frontend page-control APIs with backend Velocity `$vs.*` APIs.
