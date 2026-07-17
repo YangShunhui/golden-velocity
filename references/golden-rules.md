@@ -6,6 +6,8 @@ For complete `$vs.*` service-script method signatures and return types, read [vs
 
 For SQL text helper functions such as `SQLTools.toChar(...)`, `SQLTools.isNull(...)`, and `SQLTools.top(...)`, read [sqltools-reference.md](sqltools-reference.md).
 
+For frontend page-control JavaScript methods such as dialogs, loading, page/window operations, frontend service-component calls, permissions, system variables, and frontend utilities, read [frontend-page-api.md](frontend-page-api.md).
+
 ## Clarify before coding
 
 When generating Golden code, do not guess missing business-critical details. Ask the user first when unclear details could change the business result.
@@ -20,6 +22,7 @@ Ask before coding when any of these are unclear:
 - SQL query filters, join keys, data-permission main table, or grouping keys.
 - Insert, update, delete, sync, or de-duplication matching keys.
 - Return shape for frontend `$result` or process function output.
+- Frontend form/table/page-control method signatures when they are not present in `frontend-page-api.md`.
 
 Safe defaults may be used without asking only when they do not affect the business result, such as:
 
@@ -30,6 +33,21 @@ Safe defaults may be used without asking only when they do not affect the busine
 - Not setting primary key IDs during normal inserts.
 
 When a safe default is used, state the assumption briefly in the response.
+
+## Frontend page-control rules
+
+Use frontend page-control APIs when the user asks for `golden` frontend JS, 页面控件, form/table/page operations, dialogs, loading, opening pages/windows, frontend service-component calls, permissions, system variables, or frontend utilities.
+
+Frontend rules:
+
+- Prefer platform page-control APIs from [frontend-page-api.md](frontend-page-api.md) instead of raw browser APIs or hand-written DOM/window utilities.
+- Prefer `getServerData(...)` for synchronous frontend service-component calls when an immediate return value is required.
+- Prefer `request(...)` for asynchronous frontend service-component calls with success and error callbacks.
+- Prefer page-control dialog, message, loading, and window APIs over raw `alert(...)`, manual loading masks, or hand-built navigation logic.
+- For frontend numeric calculations, use page-control `precise(...)`; backend Velocity calculations still use `$vs.util.precise(...)`.
+- For frontend date and number formatting, prefer page-control `formatDate(...)`, `formatNumber(...)`, and related helpers when signatures are available.
+- Keep frontend JS APIs separate from backend Velocity `$vs.*` APIs.
+- Do not invent table, form, or grid APIs. If [frontend-page-api.md](frontend-page-api.md) does not contain the needed method signature, ask the user or extract more from API Center first.
 
 ## Common directives
 

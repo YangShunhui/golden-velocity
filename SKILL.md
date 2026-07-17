@@ -1,6 +1,6 @@
 ---
 name: golden语法
-description: Use when the user explicitly asks for golden语法, golden syntax, Velocity + $vs style, or the team's ShowDoc Velocity rules for SQL, backend code, service components, process functions, temporary tables, external interfaces, or code rewrites.
+description: Use when the user explicitly asks for golden语法, golden syntax, Velocity + $vs style, or the team's ShowDoc Velocity rules for frontend JavaScript, page controls, SQL, backend code, service components, process functions, temporary tables, external interfaces, or code rewrites.
 ---
 
 # Golden Syntax
@@ -9,7 +9,7 @@ Use this skill only when the user explicitly asks for `golden语法` or clearly 
 
 ## Core output style
 
-- Output Velocity template code, not plain Java or JS pseudocode.
+- Output Velocity template code for backend tasks and platform frontend JavaScript for page-control tasks. Do not output unrelated Java or JS pseudocode.
 - Prefer these directives when they fit:
   - `#set`
   - `#if`
@@ -144,14 +144,16 @@ $proc.method();
 - Prefer the team's existing `$vs.*` capabilities before inventing helpers.
 - Precision variables should use the standard decimal fields from the reference file.
 - For detailed API families, custom helper methods, and rules, read [references/golden-rules.md](references/golden-rules.md).
+- For frontend JavaScript page-control methods such as dialogs, loading, page/window operations, frontend service-component calls, permissions, system variables, and frontend utilities, read [references/frontend-page-api.md](references/frontend-page-api.md).
 - For exact `$vs.*` method signatures, parameters, return types, or method selection, read [references/vs-service-api.md](references/vs-service-api.md).
 - For SQL text helper signatures and examples such as `SQLTools.toChar(...)`, `SQLTools.isNull(...)`, or `SQLTools.top(...)`, read [references/sqltools-reference.md](references/sqltools-reference.md).
+- Do not mix frontend page-control APIs with backend Velocity `$vs.*` APIs.
 - If the `$vs` API reference conflicts with the team Golden rules, follow the team Golden rules first.
 - If the `SQLTools.*` reference conflicts with the team SQL rules, follow the team SQL rules first.
 - For external HTTP calls, use the interface document and [references/vs-service-api.md](references/vs-service-api.md) to choose the most suitable `$vs.http.*` method.
 
 ## When coverage is incomplete
 
-- Stay in Velocity + `$vs` style.
+- Stay in Velocity + `$vs` style for backend code and platform page-control style for frontend JavaScript.
 - Extend naming conservatively to match the existing ecosystem.
 - Do not fall back to normal Java/JS pseudocode unless the user explicitly asks for a non-golden version.
