@@ -18,6 +18,7 @@
 - 支持 SQLTools 跨库 SQL 写法，例如 `SQLTools.isNull`、`SQLTools.isEmpty`、`SQLTools.toChar`、`SQLTools.top` 等。
 - 支持外部 HTTP 接口调用模板：请求参数封装、请求头封装、`$vs.http.*` 方法选择、响应处理、请求/响应日志、异常处理。
 - 支持临时表模板：`#function createTemporaryTable()` + `$vs.dbTools.createTempTable(...)`。
+- 支持复杂报表双文件模式：过程函数分段填充临时表，报表脚本通过 `WITH AS` 汇总后查询；内置 MySQL 临时表重复引用规避规则。
 - 支持插入数据和单据号生成规则：不主动处理主键 ID，按单据类型生成单据号。
 - 支持含税单价联动计算：含税金额、无税单价、无税金额、税额、本币字段按精度联动。
 - 内置性能和代码规范：循环内少查库、少取缓存、少频繁调过程；判空、比较、精度计算、SQL 算术判空等遵循团队规则。

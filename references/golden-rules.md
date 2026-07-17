@@ -373,6 +373,126 @@ If later logic uses these tables, call `createTemporaryTable()` before inserting
 createTemporaryTable();
 ```
 
+## Report temporary-table pattern
+
+Use this pattern for complex reports that combine multiple source tables, require staged aggregation, or need MySQL-compatible temporary-table processing.
+
+Split the report into two files:
+
+- `XXX报表生成.txt`: a process function that creates and fills temporary tables.
+- `XXX报表.txt`: a report query that invokes the process function and only queries completed temporary tables.
+
+Process rules:
+
+- Create every temporary table before business DML because `createTempTable(...)` may implicitly commit.
+- Prepare shared data, such as latest settlement dates, once before calling segment insert methods.
+- Each source segment uses one `INSERT INTO TEMP_TABLE (...) SELECT ...` and writes only its own fields. Do not add large groups of `0 AS FIELD_NAME` placeholders.
+- Apply data permission to the source table that owns the business organization and department. Do not repeat it across every joined table without a business reason.
+- MySQL must not read and write the same temporary table in one SQL statement. Copy required dimensions to `XXX_BASE_TMP` or `XXX_SCOPE_TMP` before using them to insert back into the main temporary table.
+- Do not reuse a CTE that depends on a temporary table across multiple `UNION ALL` branches. Materialize the source into another temporary table, then use independent insert statements for each difference type.
+
+Query rules:
+
+- Invoke the process function before querying the temporary table.
+- Use `WITH XXX_SUM_DATA AS (...)` to aggregate first.
+- Use `SUM(SQLTools.isNull(...,0))` for metrics and `MAX(...)` for descriptive fields.
+- Apply final calculations, main filters, and sorting in the outer query.
+
+### Generic sales report example
+
+`销售汇总报表生成.txt`:
+
+```velocity
+@createTemporaryTable();
+@insertOrderData($form);
+@insertRefundData($form);
+
+#function createTemporaryTable()
+    $vs.dbTools.createTempTable(`
+        CREATE TEMPORARY TABLE SALES_REPORT_TMP (
+            ORG_CODE VARCHAR(30) DEFAULT NULL COMMENT '业务机构',
+            CUSTOMER_CODE VARCHAR(30) DEFAULT NULL COMMENT '客户编码',
+            CUSTOMER_NAME VARCHAR(100) DEFAULT NULL COMMENT '客户名称',
+            SALES_MONEY DECIMAL(25,8) DEFAULT NULL COMMENT '订单金额',
+            REFUND_MONEY DECIMAL(25,8) DEFAULT NULL COMMENT '退款金额'
+        )
+    `);
+#end
+
+#function insertOrderData($form)
+    #set($dataAuthSql = $vs.auth.andDataAuth('SALES_ORDER', 'A'));
+    #set($sql = `
+        INSERT INTO SALES_REPORT_TMP (ORG_CODE, CUSTOMER_CODE, CUSTOMER_NAME, SALES_MONEY)
+        SELECT
+            A.ORG_CODE AS ORG_CODE,
+            A.CUSTOMER_CODE AS CUSTOMER_CODE,
+            MAX(A.CUSTOMER_NAME) AS CUSTOMER_NAME,
+            SUM(SQLTools.isNull(A.ORDER_MONEY, 0)) AS SALES_MONEY
+        FROM SALES_ORDER A
+        WHERE A.ORDER_DATE >= SQLTools.toDate(#{START_DATE}, 'yyyy-MM-dd')
+        AND A.ORDER_DATE <= SQLTools.toDate(SQLTools.concat(#{END_DATE}, ' 23:59:59'), 'yyyy-MM-dd HH:mm:ss')
+        ${dataAuthSql}
+        GROUP BY A.ORG_CODE, A.CUSTOMER_CODE
+    `);
+    $vs.dbTools.execute($sql, $form);
+#end
+
+#function insertRefundData($form)
+    #set($dataAuthSql = $vs.auth.andDataAuth('SALES_REFUND', 'A'));
+    #set($sql = `
+        INSERT INTO SALES_REPORT_TMP (ORG_CODE, CUSTOMER_CODE, CUSTOMER_NAME, REFUND_MONEY)
+        SELECT
+            A.ORG_CODE AS ORG_CODE,
+            A.CUSTOMER_CODE AS CUSTOMER_CODE,
+            MAX(A.CUSTOMER_NAME) AS CUSTOMER_NAME,
+            SUM(SQLTools.isNull(A.REFUND_MONEY, 0)) AS REFUND_MONEY
+        FROM SALES_REFUND A
+        WHERE A.REFUND_DATE >= SQLTools.toDate(#{START_DATE}, 'yyyy-MM-dd')
+        AND A.REFUND_DATE <= SQLTools.toDate(SQLTools.concat(#{END_DATE}, ' 23:59:59'), 'yyyy-MM-dd HH:mm:ss')
+        ${dataAuthSql}
+        GROUP BY A.ORG_CODE, A.CUSTOMER_CODE
+    `);
+    $vs.dbTools.execute($sql, $form);
+#end
+```
+
+`销售汇总报表.txt`:
+
+```velocity
+$vs.util.checkInput($form.START_DATE, '请填写开始日期');
+$vs.util.checkInput($form.END_DATE, '请填写结束日期');
+
+#set($result = $vs.util.newMap());
+#if (!$isSum)
+    $vs.proc.invoke('com.golden.bdp.gdrm.report', 'querySalesReport', $form);
+    #set($sql = `
+        WITH SALES_SUM_DATA AS (
+            SELECT
+                A.ORG_CODE AS ORG_CODE,
+                A.CUSTOMER_CODE AS CUSTOMER_CODE,
+                MAX(A.CUSTOMER_NAME) AS CUSTOMER_NAME,
+                SUM(SQLTools.isNull(A.SALES_MONEY, 0)) AS SALES_MONEY,
+                SUM(SQLTools.isNull(A.REFUND_MONEY, 0)) AS REFUND_MONEY
+            FROM SALES_REPORT_TMP A
+            GROUP BY A.ORG_CODE, A.CUSTOMER_CODE
+        )
+        SELECT
+            A.ORG_CODE AS ORG_CODE,
+            A.CUSTOMER_CODE AS CUSTOMER_CODE,
+            A.CUSTOMER_NAME AS CUSTOMER_NAME,
+            A.SALES_MONEY AS SALES_MONEY,
+            A.REFUND_MONEY AS REFUND_MONEY,
+            SQLTools.isNull(A.SALES_MONEY, 0) - SQLTools.isNull(A.REFUND_MONEY, 0) AS NET_SALES_MONEY
+        FROM SALES_SUM_DATA A
+        WHERE A.ORG_CODE = :ORG_CODE
+        ORDER BY A.ORG_CODE ASC, A.CUSTOMER_CODE ASC
+    `);
+    #set($result.sql = $sql);
+    #set($result.sum = '');
+#end
+return $result;
+```
+
 ## Tax-inclusive price linkage
 
 Use this template when an inclusive-tax unit price changes and dependent price or amount fields must be recalculated.

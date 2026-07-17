@@ -102,6 +102,19 @@ Do not mix in unrelated frameworks or another template language.
 - Do not add primary keys, indexes, or constraints unless the user explicitly asks for them.
 - If later logic depends on a temporary table, call `createTemporaryTable()` before inserting into or querying from the temporary table.
 
+## Report temporary-table pattern
+
+- Use this pattern for complex reports that combine multiple sources, need staged aggregation, or must be compatible with MySQL temporary-table limits.
+- Split the report into two Golden files:
+  - a process-function file that creates and fills temporary tables
+  - a report-query file that invokes the process function and only queries completed temporary tables
+- In the process file, create all temporary tables first, prepare shared data such as settlement dates, then call focused `insert...Data($form)` methods by source or business segment.
+- Each segment should use one `INSERT INTO TEMP_TABLE (...) SELECT ...` and insert only fields supplied by that segment. Do not add large groups of `0 AS FIELD_NAME` placeholders.
+- In the report-query file, use `WITH XXX_SUM_DATA AS (...)` to aggregate the temporary table first, then calculate final fields and apply main report filters in the outer query.
+- MySQL must not read and write the same temporary table in one SQL statement. When later logic needs dimensions from the main temporary table, first copy them into a staging table such as `XXX_BASE_TMP` or `XXX_SCOPE_TMP`.
+- Do not reuse a CTE that depends on a temporary table across multiple `UNION ALL` branches. Materialize the source into another temporary table, then run independent insert statements when multiple difference rows are required.
+- `createTempTable(...)` may implicitly commit. Create report temporary tables before business DML that must remain rollback-safe.
+
 ## Preferred process patterns
 
 - For sync-style processes, prefer this shape when it fits:
